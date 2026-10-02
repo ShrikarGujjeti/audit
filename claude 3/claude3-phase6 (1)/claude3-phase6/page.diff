@@ -1,0 +1,43 @@
+--- orig/src/app/(app)/trips/[tripId]/page.tsx	2026-10-02 07:41:35.365551235 +0000
++++ src/app/(app)/trips/[tripId]/page.tsx	2026-10-02 07:41:35.377256247 +0000
+@@ -4,6 +4,7 @@
+ import { getTripById } from "@/modules/trips/queries";
+ import { formatTripDateRange } from "@/modules/trips/format";
+ import { DeleteTripButton } from "@/modules/trips/components/DeleteTripButton";
++import { AddMemories } from "@/modules/media/components/AddMemories";
+ 
+ export default async function TripDetailPage({
+   params,
+@@ -31,17 +32,21 @@
+             {formatTripDateRange(trip.start_date, trip.end_date)}
+           </p>
+         </div>
+-        {isOwner ? (
+-          <div className="flex shrink-0 gap-2">
+-            <Link
+-              href={`/trips/${trip.id}/edit`}
+-              className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+-            >
+-              Edit
+-            </Link>
+-            <DeleteTripButton tripId={trip.id} tripName={trip.name} />
+-          </div>
+-        ) : null}
++        <div className="flex shrink-0 flex-wrap items-start justify-end gap-2">
++          {/* Any member may add memories; RLS/RPCs enforce that, not this render. */}
++          <AddMemories tripId={trip.id} tripName={trip.name} />
++          {isOwner ? (
++            <>
++              <Link
++                href={`/trips/${trip.id}/edit`}
++                className="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
++              >
++                Edit
++              </Link>
++              <DeleteTripButton tripId={trip.id} tripName={trip.name} />
++            </>
++          ) : null}
++        </div>
+       </div>
+ 
+       {trip.description ? (

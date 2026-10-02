@@ -1,0 +1,13 @@
+--- orig/src/modules/media/validation.ts	2026-10-01 19:11:54.634264624 +0000
++++ src/modules/media/validation.ts	2026-10-01 19:11:54.636702026 +0000
+@@ -36,8 +36,8 @@
+ 
+ export type AllowedMimeType = (typeof ALLOWED_MIME_TYPES)[number];
+ 
+-const MAX_PHOTO_BYTES = 25 * 1024 * 1024;  // mirrors max_media_bytes_for_type('photo')
+-const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // mirrors max_media_bytes_for_type('video')
++export const MAX_PHOTO_BYTES = 25 * 1024 * 1024;  // mirrors max_media_bytes_for_type('photo')
++export const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // mirrors max_media_bytes_for_type('video')
+ const MAX_FILENAME_LENGTH = 255;
+ 
+ export function isAllowedMimeType(mimeType: string): mimeType is AllowedMimeType {

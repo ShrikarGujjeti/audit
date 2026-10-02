@@ -1,0 +1,28 @@
+{
+ "compilerOptions": {
+  "target": "ES2022",
+  "lib": [
+   "dom",
+   "dom.iterable",
+   "esnext"
+  ],
+  "module": "commonjs",
+  "strict": true,
+  "skipLibCheck": true,
+  "esModuleInterop": true,
+  "outDir": "/tmp/out2",
+  "rootDir": ".",
+  "types": [],
+  "jsx": "react-jsx",
+  "paths": {
+   "@/*": [
+    "./src/*"
+   ]
+  }
+ },
+ "include": [
+  "stubs/stubs.d.ts",
+  "src/modules/media/**/*.ts",
+  "src/modules/media/**/*.tsx"
+ ]
+}
