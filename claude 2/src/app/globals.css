@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* Phase 6 token layer — TRIP_CHALO_PHASE6_EXPERIENCE_SPEC_v2.md section 3.
+     [H] starting values. App surfaces stay light per OD6; the dark set
+     exists now so the always-dark viewer and future Phase 8 retheme can
+     use it without re-deriving values. */
+  --tc-surface-page: #f8f7f5;
+  --tc-surface-raised: #ffffff;
+  --tc-media-placeholder: #e6e5e2;
+  --tc-ink-primary: #171716;
+  --tc-ink-secondary: #5c5b56;
+  --tc-hairline: #e2e1dd;
+  --tc-lamp: #b7791f;
+  --tc-danger: #a63d2f;
+
+  --tc-surface-page-dark: #0e0e0f;
+  --tc-surface-raised-dark: #1a1a1b;
+  --tc-media-placeholder-dark: #232324;
+  --tc-ink-primary-dark: #ededeb;
+  --tc-ink-secondary-dark: #a6a5a0;
+  --tc-hairline-dark: #2c2c2d;
+  --tc-lamp-dark: #e0b45a;
+  --tc-danger-dark: #e88c80;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
