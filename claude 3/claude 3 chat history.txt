@@ -1,0 +1,1908 @@
+
+// main promt
+# Claude 3 — Trip Chalo Phase 6
+
+## Upload UX, Reliability, Integration & iPhone Original-Fidelity
+
+You are **Claude 3**, one of three independent Claude agents working in parallel on **Trip Chalo Phase 6**.
+
+Your responsibility is:
+
+> **Upload UX + upload pipeline + reliability + trip-page integration + metadata capture + iPhone/original-fidelity investigation + integration quality**
+
+You are one part of a larger parallel implementation effort.
+
+You are **not waiting for Claude 1 or Claude 2**.
+
+You should independently inspect, implement, test, and report your work.
+
+---
+
+# 1. THE WORKING PHILOSOPHY
+
+This project deliberately uses **three independent implementation agents**.
+
+The intent is **not**:
+
+> Claude 1 finishes ? Claude 2 reviews ? Claude 3 reviews.
+
+The intent is:
+
+> Claude 1, Claude 2, and Claude 3 independently implement their assigned areas in parallel ? independently verify their own work ? report evidence ? integrate and cross-review afterward.
+
+Therefore:
+
+* Do not wait for another Claude.
+* Do not assume another Claude's work is correct.
+* Do not assume another Claude's work is incomplete merely because an old document says so.
+* Inspect the current repository.
+* Make your own engineering decisions.
+* Verify what you can actually verify.
+* Clearly expose dependencies and uncertainty.
+
+This is intentional.
+
+---
+
+# 2. AUTHORITATIVE SOURCE HIERARCHY
+
+Use this hierarchy when sources disagree:
+
+### 1. Current repository / current HEAD
+
+This is the implementation truth.
+
+### 2. Explicit user instructions
+
+These override assumptions.
+
+### 3. `TRIP_CHALO_PHASE6_EXPERIENCE_SPEC_v2.md`
+
+This is the **primary Phase 6 product and interaction specification**.
+
+It defines the intended destination.
+
+### 4. Current implementation evidence
+
+Existing code, migrations, types, actions, queries, and tests.
+
+### 5. Current audits/reviews
+
+Useful evidence, but not automatically authoritative.
+
+### 6. Historical handoffs and older documentation
+
+Useful for context only.
+
+---
+
+## Important
+
+The Phase 6 Experience Spec describes the intended experience and some repository reality as it existed when the spec was written.
+
+The repository may have changed afterward.
+
+Therefore:
+
+> **Do not blindly implement statements such as "X is missing" without inspecting the current repository.**
+
+Likewise:
+
+> **Do not assume an old audit's finding is still valid.**
+
+If you discover a contradiction, investigate it and report it.
+
+---
+
+# 3. YOUR OWNERSHIP
+
+## You own
+
+* Native media picker
+* Multiple-file selection
+* Upload preflight
+* Upload queue
+* Upload state machine
+* Upload concurrency
+* Upload progress
+* Request ? PUT ? confirm orchestration
+* Retry semantics
+* Confirmation reconciliation
+* Upload failure recovery
+* Cancellation where supported
+* Client metadata extraction
+* Capture-time extraction
+* Upload tray
+* Upload progress UI
+* Upload failure/retry UI
+* Trip-page upload integration
+* Upload ? timeline refresh integration
+* Refresh coalescing
+* Upload performance
+* Mobile upload behavior
+* iPhone/iOS Safari investigation
+* HEIC investigation
+* Original-fidelity investigation
+* Android real-device upload testing where available
+
+---
+
+# 4. CLAUDE 1 OWNERSHIP
+
+Claude 1 owns:
+
+* Media database schema
+* RLS
+* Grants
+* SECURITY DEFINER functions
+* Upload request backend
+* R2 implementation
+* Authoritative `storage_key`
+* Signed upload URL generation
+* Signed download URL generation
+* Confirmation security boundary
+* Media deletion authorization
+* Backend security
+
+You may inspect Claude 1's implementation.
+
+You may identify problems.
+
+You may report them.
+
+But do not independently build a competing backend architecture.
+
+---
+
+# 5. CLAUDE 2 OWNERSHIP
+
+Claude 2 owns:
+
+* Timeline
+* Gallery
+* Media tiles
+* Media viewer
+* Viewer routing
+* Deep links
+* Viewer history
+* Viewer navigation
+* Responsive gallery/viewer behavior
+* Viewer accessibility
+
+You should provide the upload-to-timeline integration point.
+
+Do not create a competing gallery or viewer.
+
+---
+
+# 6. IMPLEMENTATION FREEDOM
+
+You have substantial engineering freedom.
+
+The specification defines the **destination**, not every line of code.
+
+Choose the implementation that you believe is:
+
+* Correct
+* Secure
+* Maintainable
+* Type-safe
+* Performant
+* Accessible
+* Compatible with the current architecture
+* Easy to test
+* Consistent with the existing project
+
+Do not mechanically implement a prescribed architecture merely because it appears in a prompt.
+
+If the repository already contains a better solution, preserve it.
+
+If you discover that the specification's suggested implementation is technically inappropriate for the current codebase, choose the correct implementation and explain the deviation.
+
+Do not over-engineer.
+
+---
+
+# 7. FIRST STEP: INSPECT
+
+Before changing code, inspect the current repository.
+
+At minimum investigate:
+
+## Trip page
+
+* Current trip route
+* Existing trip components
+* Existing server/client boundaries
+* Existing loading/error patterns
+* Existing Phase 5 UI
+* Existing trip header
+
+## Media
+
+* Existing media actions
+* Existing media queries
+* Existing validation
+* Existing types
+* Existing media migrations
+* Existing components
+
+## Storage
+
+* Existing R2 helper
+* Signed upload behavior
+* Signed download behavior
+* Server/client boundaries
+
+## Supabase
+
+Inspect the current migration chain.
+
+Pay particular attention to the current state of:
+
+* media upload request
+* media confirmation
+* confirmation authorization
+* media deletion
+* membership authorization
+
+Do not assume the old `0013` state is the final implementation.
+
+Inspect the later security migrations and the actual current code.
+
+## Dependencies
+
+Inspect:
+
+* `package.json`
+* lockfile
+* existing EXIF/media dependencies
+* browser utilities
+
+Do not add a dependency without first checking whether existing dependencies already solve the problem.
+
+---
+
+# 8. CORE UPLOAD EXPERIENCE
+
+The conceptual flow is:
+
+```text
+User selects files
+        ?
+Preflight
+        ?
+Queue
+        ?
+Acquire upload slot
+        ?
+Request upload
+        ?
+Receive mediaId + signed PUT information
+        ?
+PUT original bytes to R2
+        ?
+Confirm same mediaId
+        ?
+Reconcile
+        ?
+Refresh media
+        ?
+Timeline displays media
+```
+
+This is the core vertical path.
+
+Do not lose sight of it while building UI details.
+
+---
+
+# 9. NATIVE FILE PICKER
+
+Use the browser's native media picker.
+
+Support:
+
+* multiple files
+* photos
+* videos
+* mobile browsers
+* desktop browsers where practical
+
+Use the **existing backend MIME allowlist/current project validation rules** rather than inventing a separate list.
+
+Investigate how the `accept` attribute affects iOS Safari, particularly HEIC behavior.
+
+Do not assume that:
+
+```text
+accept="image/*"
+```
+
+means the browser will expose exactly the formats you expect.
+
+Verify actual behavior where possible.
+
+---
+
+# 10. CLIENT PREFLIGHT
+
+Before requesting an upload, perform useful local validation.
+
+At minimum consider:
+
+* MIME type
+* file size
+* filename
+* file readability
+* media type
+* image dimensions
+* video duration where available
+
+Use the Phase 6 limits and existing backend rules.
+
+Client validation is **not a security boundary**.
+
+The server remains authoritative.
+
+---
+
+# 11. VALIDATION LIMITS
+
+The current Phase 6 contract establishes approximately:
+
+* photos: ? 25 MiB
+* videos: ? 200 MiB
+
+Do not duplicate these limits in several unrelated places if the repository already has a shared validation source.
+
+Where practical, derive UI validation from the existing project validation logic.
+
+Do not allow client validation to contradict server validation.
+
+---
+
+# 12. METADATA SANITY
+
+Capture useful metadata, including where available:
+
+* `captured_at`
+* width
+* height
+* duration
+* MIME type
+* media type
+* filename
+
+Defensively validate metadata before sending it.
+
+For dimensions:
+
+```text
+non-finite ? null
+? 0 ? null
+```
+
+For capture time:
+
+```text
+before 1990 ? null
+future date ? null
+```
+
+Do not fabricate metadata.
+
+Client metadata remains untrusted.
+
+---
+
+# 13. CAPTURE-TIME POLICY
+
+Follow the approved Phase 6 capture-time policy:
+
+```text
+EXIF DateTimeOriginal
+        ?
+OffsetTimeOriginal when available
+        ?
+interpret using uploader browser timezone
+        ?
+null
+```
+
+Do **not** use:
+
+```text
+File.lastModified
+```
+
+as capture time unless the owner explicitly changes the decision.
+
+If EXIF is unavailable or invalid:
+
+```text
+captured_at = null
+```
+
+Do not substitute upload time as capture time.
+
+Claude 2 will handle the resulting Undated experience.
+
+---
+
+# 14. EXIF IMPLEMENTATION
+
+Inspect existing dependencies first.
+
+If an appropriate EXIF parser already exists, use it.
+
+If not, determine whether a small dependency is justified.
+
+Do not add a large image-processing framework merely to extract one metadata field.
+
+Test or reason about:
+
+* EXIF present
+* EXIF absent
+* malformed EXIF
+* valid capture time
+* invalid/future capture time
+* timezone offset
+* no timezone offset
+
+Do not overclaim browser support.
+
+---
+
+# 15. UPLOAD QUEUE
+
+Implement an explicit queue.
+
+Minimum states:
+
+```text
+queued
+requesting
+uploading
+confirming
+done
+failed
+rejected
+```
+
+Additional states are allowed if they materially improve correctness.
+
+The queue must make it obvious:
+
+* what is waiting
+* what is active
+* what succeeded
+* what failed
+* what was rejected
+* what can be retried
+* which stage failed
+
+Keep the queue **in memory for Phase 6**.
+
+It does not need to survive navigation.
+
+Do not implement persistent/background upload infrastructure.
+
+---
+
+# 16. CONCURRENCY
+
+The Phase 6 specification treats approximately **2–3 simultaneous uploads** as a hypothesis.
+
+Choose an appropriate concurrency cap based on:
+
+* browser behavior
+* mobile memory
+* file sizes
+* network behavior
+* R2 behavior
+* user experience
+
+Do not blindly start unlimited uploads.
+
+Document the chosen approach.
+
+---
+
+# 17. SIGNED URL LIFECYCLE
+
+This is important.
+
+Do **not** request signed upload URLs for every queued item in advance.
+
+A queued file should first acquire an upload slot.
+
+Preferred lifecycle:
+
+```text
+queued
+  ?
+slot available
+  ?
+request upload
+  ?
+receive signed URL
+  ?
+PUT immediately
+  ?
+confirm
+  ?
+release slot
+```
+
+This prevents queued files from holding stale signed URLs.
+
+The queue should not contain a large collection of unused upload URLs.
+
+---
+
+# 18. CONTENT-TYPE INTEGRITY
+
+The signed PUT URL includes the expected `Content-Type`.
+
+Therefore the actual PUT must use the same MIME type that was used when the signed URL was created.
+
+Do not silently:
+
+* change MIME type;
+* convert HEIC;
+* transcode MOV;
+* substitute JPEG;
+* invent a fallback Content-Type.
+
+If the browser produces unexpected MIME behavior, investigate and report it.
+
+---
+
+# 19. ORIGINAL BYTES
+
+Trip Chalo is an originals-preservation system.
+
+Do not intentionally:
+
+* resize
+* recompress
+* transcode
+* convert HEIC
+* strip original bytes
+
+during Phase 6 upload.
+
+Phase 6 does not implement a derivative pipeline.
+
+---
+
+# 20. FILE MEMORY HANDLING
+
+Large originals exist, especially videos up to approximately 200 MiB.
+
+Do not unnecessarily read an entire file into a JavaScript `ArrayBuffer` merely to upload it.
+
+Use the browser's normal `File`/`Blob` upload mechanisms or other appropriate browser-supported mechanisms.
+
+Do not create a custom streaming abstraction unless the actual architecture requires it.
+
+The requirement is:
+
+> **Do not unnecessarily buffer entire large originals in application memory.**
+
+---
+
+# 21. UPLOAD PROGRESS
+
+Show useful progress where the browser/API allows it.
+
+Consider:
+
+* individual progress
+* active state
+* queue progress
+* completion
+* failure
+* retry
+
+Do not fabricate byte-level progress.
+
+If precise progress is unavailable, use an honest indeterminate state.
+
+---
+
+# 22. REQUEST / PUT / CONFIRM
+
+Treat these as distinct operations.
+
+### Request
+
+Establish the media upload identity and obtain the authorized upload information.
+
+### PUT
+
+Upload the original bytes to R2.
+
+### Confirm
+
+Confirm the already-uploaded object using the existing media identity.
+
+Do not collapse these steps into a single conceptual operation.
+
+---
+
+# 23. CONFIRMATION SECURITY BOUNDARY
+
+This is important because the project previously had a security issue around direct confirmation RPC access.
+
+Claude 3 must consume the **current secure application-level confirmation contract**.
+
+Do not directly call a privileged Supabase confirmation RPC from browser code.
+
+Do not send:
+
+* service-role credentials
+* database service credentials
+* privileged secrets
+
+to the browser.
+
+If the current backend contract differs from an old audit, use the current repository implementation.
+
+---
+
+# 24. RETRY SEMANTICS
+
+The retry behavior depends on which stage failed.
+
+## Request failure
+
+A new request is appropriate.
+
+```text
+request failure
+    ?
+new request
+    ?
+new mediaId
+    ?
+new signed URL
+```
+
+## PUT failure
+
+According to the Phase 6 contract, retrying a failed PUT should establish a **new upload request**.
+
+```text
+PUT failure
+    ?
+new request
+    ?
+new mediaId
+    ?
+new signed URL
+    ?
+PUT
+```
+
+Do not blindly reuse a failed upload request unless the actual current backend contract explicitly proves that behavior safe and equivalent.
+
+## Confirm failure
+
+This is different.
+
+If:
+
+```text
+PUT succeeds
+    ?
+confirm times out/fails
+```
+
+do **not** create a new upload.
+
+Keep the same:
+
+```text
+mediaId
+```
+
+Then reconcile.
+
+---
+
+# 25. CONFIRMATION RECONCILIATION
+
+A network timeout does not prove confirmation failed.
+
+Example:
+
+```text
+PUT succeeds
+    ?
+confirm sent
+    ?
+network timeout
+```
+
+The client should:
+
+1. retain the same `mediaId`;
+2. reconcile current state;
+3. determine whether the media is already READY;
+4. retry confirmation where appropriate;
+5. avoid creating another upload.
+
+The invariant is:
+
+> **Confirmation uncertainty must never become an automatic duplicate upload.**
+
+---
+
+# 26. DUPLICATE-PREVENTION INVARIANT
+
+These two cases must remain distinct:
+
+```text
+PUT failure
+? new request
+? new mediaId
+```
+
+versus:
+
+```text
+Confirm failure
+? same mediaId
+? reconcile/retry confirm
+```
+
+Do not merge these retry paths.
+
+This distinction should exist in both implementation and tests.
+
+---
+
+# 27. CANCELLATION
+
+Follow the Phase 6 cancellation tiers.
+
+### Core
+
+Queued items can be cancelled.
+
+### Tier 2
+
+Uploading items may support cancellation/abort if browser APIs and the implementation make it reliable.
+
+### Not cancellable
+
+Do not pretend that:
+
+* requesting
+* confirming
+
+can be safely cancelled once the server operation is underway.
+
+If an operation has already completed, cancellation cannot retroactively undo it.
+
+---
+
+# 28. OPTIONAL PENDING-ROW CLEANUP
+
+Evaluate whether known pending rows created by the client can be cleaned up safely after:
+
+* cancellation
+* failed PUT
+
+using the existing authorized deletion mechanism.
+
+This is **optional**, not a new backend requirement.
+
+Do not invent a cleanup RPC.
+
+Do not make cleanup a prerequisite for upload correctness.
+
+The authoritative upload pipeline must remain correct even if cleanup is unavailable.
+
+---
+
+# 29. LEAVE-PAGE BEHAVIOR
+
+Phase 6 uploads require the browser tab to remain active.
+
+While uploads are running, communicate:
+
+> **Keep Trip Chalo open until this finishes.**
+
+Where supported, provide a leave-page warning.
+
+The upload queue:
+
+* is in memory;
+* does not survive navigation;
+* does not continue in the background.
+
+Do not implement:
+
+* service-worker background upload;
+* persistent resumable upload;
+* native PhotoKit upload;
+* background queue persistence.
+
+---
+
+# 30. UPLOAD TRAY
+
+The experience should feel like adding memories to a trip, not uploading files to an enterprise system.
+
+The intended pattern is a compact upload tray.
+
+For example:
+
+> **Adding 3 of 14**
+
+with an expandable list.
+
+Rows can include:
+
+* preview where safely available;
+* filename;
+* progress;
+* state;
+* retry;
+* cancel where supported.
+
+No confetti.
+
+No unnecessary celebration animation.
+
+---
+
+# 31. ERROR UX
+
+For **local/client validation**, use clear user-facing language.
+
+Examples:
+
+> "This file type isn't supported."
+
+> "That's a big one. Clips can be up to 200 MB."
+
+> "Couldn't add this one. Check your connection and try again."
+
+For **server-returned messages**:
+
+> Preserve the server-provided message as the authoritative message.
+
+Do not string-match server text and invent a new semantic state.
+
+Do not expose:
+
+* SQL errors
+* R2 internals
+* storage keys
+* stack traces
+* secrets
+
+---
+
+# 32. SESSION EXPIRY
+
+Handle session expiration explicitly.
+
+Use the approved experience:
+
+> **Your session ended. Sign in to continue.**
+
+Where supported by the application architecture, return the user to the trip after authentication.
+
+Do not claim that the in-memory upload queue survives the navigation.
+
+---
+
+# 33. IPHONE / IOS ORIGINAL-FIDELITY
+
+This is a major investigation responsibility.
+
+Do not assume:
+
+> "iPhone always uploads the original."
+
+Investigate actual browser behavior.
+
+Where devices are available, test:
+
+### Safari
+
+* Optimize Storage OFF
+* Optimize Storage ON
+
+### Media
+
+* JPEG
+* HEIC
+* MOV
+* common iPhone video formats
+
+Classify observations:
+
+```text
+ORIGINAL
+OPTIMIZED
+TRANSCODED
+UNKNOWN
+FAILED
+```
+
+---
+
+# 34. ORIGINAL-FIDELITY EVIDENCE
+
+Where possible compare:
+
+* MIME type
+* extension
+* file size
+* dimensions
+* metadata
+* downloaded bytes
+* cryptographic hash
+
+Do not conclude "original" simply because the resulting image looks identical.
+
+If evidence is insufficient:
+
+> **UNKNOWN**
+
+is the correct answer.
+
+---
+
+# 35. OPTIMIZE STORAGE
+
+Treat Optimize Storage as an investigation.
+
+If Safari does not expose the original locally, do not invent an iCloud/PhotoKit mechanism for the web.
+
+Do not claim that Trip Chalo can force Safari to retrieve an iCloud original unless actual evidence establishes that behavior.
+
+Record:
+
+* device
+* iOS version
+* Safari version where available
+* Optimize Storage state
+* source media
+* observed browser file
+* resulting upload
+* evidence
+* conclusion
+
+---
+
+# 36. HEIC
+
+Phase 6 does not implement HEIC conversion.
+
+If Safari supplies HEIC:
+
+* preserve it;
+* upload it if the current backend supports it;
+* do not silently convert it.
+
+If preview is unavailable, that is a presentation concern for Claude 2.
+
+If the format is unsupported:
+
+* reject clearly;
+* do not silently substitute another format.
+
+---
+
+# 37. ANDROID
+
+Where an Android device is available, test:
+
+* Chrome
+* camera photos
+* camera videos
+* gallery selection
+* multiple files
+* large media
+* interrupted uploads
+
+Do not generalize one Android result to every Android device/browser.
+
+---
+
+# 38. TRIP-PAGE INTEGRATION
+
+Phase 6 adds an obvious:
+
+> **Add memories**
+
+entry point to the existing trip experience.
+
+Do not redesign the existing trip header.
+
+Preserve:
+
+* trip identity
+* dates
+* description
+* owner controls
+* Phase 5 membership/invitation UI
+
+The upload experience should feel like an extension of the existing trip.
+
+---
+
+# 39. PHASE 5 UI
+
+Inspect the current repository first.
+
+If Phase 5 UI exists:
+
+* preserve it.
+
+If it does not exist:
+
+* report the gap.
+
+Do not independently implement the full Phase 5 people/invitation system.
+
+If a tiny integration change is required for Phase 6, keep it narrow.
+
+---
+
+# 40. UPLOAD ? TIMELINE REFRESH
+
+After successful confirmation:
+
+```text
+confirm
+   ?
+coalesced refresh
+   ?
+media list
+   ?
+Claude 2 timeline
+```
+
+Do not create a second media dataset.
+
+Do not duplicate timeline grouping logic.
+
+The upload system should integrate with the existing/current media source.
+
+---
+
+# 41. REFRESH COALESCING
+
+The specification suggests a trailing debounce around approximately 1–2 seconds.
+
+Treat this as a tunable hypothesis, not an immutable constant.
+
+Required behavior:
+
+* new media appears promptly;
+* refreshes are not unnecessarily multiplied;
+* scroll position is preserved;
+* one final refresh occurs when the queue drains.
+
+Choose the implementation you believe best satisfies this.
+
+---
+
+# 42. DELETE INTEGRATION
+
+Claude 1 owns authorization.
+
+Claude 2 owns the Remove UI.
+
+Claude 3 should not implement deletion authorization.
+
+If upload queue state interacts with deletion:
+
+* respect the authoritative result;
+* do not assume a request succeeded;
+* reconcile visible media appropriately.
+
+---
+
+# 43. PERFORMANCE
+
+Design for:
+
+* 25 MiB photo originals;
+* 200 MiB video originals;
+* multiple selected files;
+* mobile memory;
+* slow networks;
+* browser lifecycle;
+* large videos.
+
+Avoid unnecessary full-file reads.
+
+Avoid unnecessary renders.
+
+Avoid unlimited concurrency.
+
+Do not build a complex performance framework without evidence that it is needed.
+
+---
+
+# 44. ACCESSIBILITY
+
+Upload UI must support:
+
+* keyboard operation;
+* visible focus;
+* screen readers;
+* logical tab order;
+* accessible retry/cancel controls;
+* progress announcements;
+* error announcements;
+* touch targets of approximately 44×44px where appropriate;
+* no hover-only functionality.
+
+Do not announce every individual percentage update aggressively.
+
+Prefer useful state summaries.
+
+---
+
+# 45. REDUCED MOTION
+
+Respect:
+
+```text
+prefers-reduced-motion
+```
+
+Animation must not be required to understand:
+
+* upload state;
+* success;
+* failure;
+* retry;
+* cancellation.
+
+Do not make View Transitions a dependency of upload correctness.
+
+---
+
+# 46. DESIGN BOUNDARY
+
+Use the Phase 6 design tokens and visual language where appropriate.
+
+Do not:
+
+* redesign the entire application;
+* retheme Phase 3–5;
+* implement app-wide dark mode;
+* redesign the trip header;
+* create a new global design system.
+
+The media viewer's dark experience belongs to Claude 2.
+
+---
+
+# 47. CORE VS TIER 2
+
+Do not accidentally turn every recommendation in the spec into a mandatory Phase 6 requirement.
+
+Prioritize the Core upload experience.
+
+Examples of features that may be Tier 2 or hypothesis-level rather than mandatory:
+
+* drag/drop;
+* ghost placeholders;
+* advanced cancellation;
+* adaptive concurrency;
+* sophisticated upload animations.
+
+Use engineering judgment.
+
+Do not expand scope merely to increase feature count.
+
+---
+
+# 48. DO NOT IMPLEMENT OUT-OF-SCOPE FEATURES
+
+Do not implement:
+
+* derivatives
+* thumbnails
+* blurhash
+* cover photos
+* captions
+* day notes
+* chat
+* Realtime
+* reactions
+* favorites
+* batch download
+* share links
+* member removal
+* ownership transfer
+* persistent/resumable uploads
+* background uploads
+* pending-row sweeper
+* HEIC conversion
+* generated video posters
+* GPS
+* places
+* PWA/share target
+* notifications
+* avatar upload
+* search
+* maps
+* AI
+* tab bar
+* three-pane desktop
+* shared web/native component library
+* app-wide typed error architecture
+* full application retheme
+* app-wide dark mode
+
+Do not invent APIs to justify these features.
+
+---
+
+# 49. TESTING PHILOSOPHY
+
+Testing is part of the task.
+
+Do not treat:
+
+> "the code looks correct"
+
+as equivalent to:
+
+> "the behavior is verified."
+
+Test progressively.
+
+---
+
+# 50. STATIC VERIFICATION
+
+Where your environment permits, run appropriate checks:
+
+* TypeScript
+* lint
+* build
+* import correctness
+* server/client boundaries
+* browser-only API boundaries
+* environment variable boundaries
+* dependency correctness
+
+If you cannot run a check, report that.
+
+---
+
+# 51. UPLOAD E2E
+
+Where the environment permits, test:
+
+```text
+browser
+? request
+? signed PUT
+? actual R2 object
+? confirm
+? READY media
+? refresh
+? timeline visibility
+```
+
+Do not treat mocked R2 behavior as proof of real R2 behavior.
+
+The project specifically requires evidence around:
+
+* browser PUT
+* R2 CORS
+* real upload
+* confirmation
+* visibility
+
+Test local and deployed origins where possible.
+
+If unavailable:
+
+> **UNKNOWN / NOT VERIFIED**
+
+---
+
+# 52. CORS
+
+Explicitly investigate browser PUT CORS.
+
+Where possible verify:
+
+* local development origin;
+* deployed application origin;
+* signed PUT request;
+* actual R2 response.
+
+Do not infer CORS correctness from server-side R2 tests.
+
+---
+
+# 53. TWO-ACCOUNT TEST
+
+Where authentication/test accounts are available, test at least:
+
+### Account A
+
+* member uploads
+* media appears
+* uploader attribution
+
+### Account B
+
+* member sees shared media
+* attribution remains correct
+
+Also test relevant membership changes where practical.
+
+Do not claim cross-user authorization behavior without evidence.
+
+---
+
+# 54. FAILURE TEST MATRIX
+
+Test as many as your environment permits.
+
+### Request
+
+* failure
+* session expiry
+* authorization failure
+
+### PUT
+
+* network interruption
+* HTTP failure
+* expired URL
+* MIME mismatch
+* large file
+* browser abort
+
+### Confirm
+
+* timeout
+* transient failure
+* repeated confirmation
+* successful PUT + failed confirmation
+* confirmation retry
+
+### Files
+
+* unsupported type
+* oversized file
+* malformed file
+* HEIC
+* MOV
+* missing EXIF
+* valid EXIF
+* invalid dimensions
+* invalid/future capture time
+
+### Queue
+
+* one file
+* multiple files
+* concurrency
+* mixed success/failure
+* retry
+* cancellation
+* queue drain
+
+---
+
+# 55. CRITICAL DUPLICATE TEST
+
+Explicitly test:
+
+```text
+select
+  ?
+request
+  ?
+PUT succeeds
+  ?
+confirm times out
+  ?
+reconcile
+  ?
+confirm same mediaId
+```
+
+Expected:
+
+```text
+ONE mediaId
+ONE logical media item
+ONE R2 object
+ONE visible timeline item
+```
+
+Not:
+
+```text
+TWO media rows
+TWO objects
+TWO timeline items
+```
+
+---
+
+# 56. FAILED PUT TEST
+
+Separately test:
+
+```text
+select
+  ?
+request
+  ?
+PUT fails
+```
+
+Expected:
+
+```text
+new request
+  ?
+new mediaId
+  ?
+new signed URL
+  ?
+PUT
+  ?
+confirm
+```
+
+Do not accidentally implement the confirmation retry semantics here.
+
+---
+
+# 57. DEVICE TEST MATRIX
+
+Where physical devices are available, record:
+
+* device;
+* OS;
+* browser;
+* media type;
+* file characteristics;
+* Optimize Storage state;
+* resulting MIME;
+* resulting size;
+* resulting dimensions;
+* metadata;
+* upload result;
+* preview result;
+* original-fidelity evidence.
+
+Do not generalize from one device.
+
+---
+
+# 58. EVIDENCE DISCIPLINE
+
+For every significant conclusion use:
+
+### VERIFIED
+
+Directly tested or directly established from current implementation.
+
+### SUPPORTED
+
+Strongly supported by code/spec but not runtime-tested.
+
+### INFERRED
+
+Reasonable conclusion derived from evidence.
+
+### PROPOSED
+
+Recommended implementation or future work.
+
+### UNKNOWN
+
+Not established.
+
+### CONTRADICTED
+
+Evidence conflicts with the claim.
+
+Never label something VERIFIED simply because the implementation appears correct.
+
+---
+
+# 59. DO NOT CLAIM WHAT YOU DID NOT TEST
+
+Especially do not claim:
+
+* live R2 success;
+* browser CORS success;
+* iPhone original preservation;
+* HEIC behavior;
+* Optimize Storage behavior;
+* cross-user behavior;
+* successful build;
+* Git commit;
+
+unless you actually verified it.
+
+If a capability was not available in your environment, say so.
+
+---
+
+# 60. PARALLEL CLAUDE / GIT MODEL
+
+Three Claudes are working independently.
+
+The shared repository/GitHub context is the coordination layer.
+
+You do not need to wait for another Claude.
+
+If your environment permits repository changes/commits:
+
+* make the changes;
+* report actual files;
+* report actual Git state.
+
+If your Claude environment does not permit modifications/commits:
+
+* do not pretend that changes were made;
+* provide the exact implementation/code/diff needed;
+* clearly separate proposed changes from completed work.
+
+Never fabricate a commit hash.
+
+---
+
+# 61. INTEGRATION CONFLICTS
+
+If another Claude has changed your area:
+
+1. Inspect the current implementation.
+2. Determine what actually exists.
+3. Determine whether it satisfies the Phase 6 contract.
+4. Preserve correct work.
+5. Modify only what is necessary.
+6. Do not revert correct work merely because another Claude authored it.
+7. Report the conflict.
+
+If two solutions are valid, prefer the one that is:
+
+* simpler;
+* safer;
+* more consistent with the repository;
+* easier to verify;
+* closer to the Phase 6 contract.
+
+---
+
+# 62. RELIABILITY INVARIANTS
+
+These must remain true.
+
+### Invariant 1
+
+A successful upload has a known media identity.
+
+### Invariant 2
+
+Queued files do not hold stale signed upload URLs.
+
+### Invariant 3
+
+PUT failure follows the approved new-request retry path.
+
+### Invariant 4
+
+Confirmation failure does not create a new upload.
+
+### Invariant 5
+
+Confirmation retry uses the same mediaId.
+
+### Invariant 6
+
+Client metadata does not override server authorization.
+
+### Invariant 7
+
+Privileged credentials never reach the browser.
+
+### Invariant 8
+
+Original bytes are not intentionally transformed.
+
+### Invariant 9
+
+Uploads do not depend on background execution.
+
+### Invariant 10
+
+A user who loses trip access cannot continue uploading to the trip.
+
+### Invariant 11
+
+Successful confirmation eventually reconciles with the timeline.
+
+### Invariant 12
+
+Unknown behavior remains UNKNOWN until evidence establishes otherwise.
+
+---
+
+# 63. WHAT SUCCESS LOOKS LIKE
+
+A user should be able to:
+
+```text
+Open trip
+   ?
+Tap Add memories
+   ?
+Select multiple photos/videos
+   ?
+See local validation
+   ?
+Queue files
+   ?
+Acquire controlled upload slots
+   ?
+Request upload information only when a slot is available
+   ?
+Upload original bytes
+   ?
+See useful progress
+   ?
+Confirm each mediaId
+   ?
+Recover from confirmation uncertainty
+   ?
+Retry failures correctly
+   ?
+Avoid duplicate media
+   ?
+Refresh/coalesce media state
+   ?
+See the new memories in the timeline
+```
+
+This should work as reliably as the available environment allows on:
+
+* desktop;
+* Android;
+* iPhone Safari.
+
+---
+
+# 64. DO NOT OPTIMIZE FOR FEATURE COUNT
+
+Do not optimize for:
+
+> "I implemented many upload features."
+
+Optimize for:
+
+> **A small, correct, reliable, testable Phase 6 upload system.**
+
+A smaller implementation with strong evidence is preferable to a larger implementation with uncertain behavior.
+
+---
+
+# 65. FINAL HANDOFF FORMAT
+
+When you finish, provide exactly these sections:
+
+## 1. COMPLETED
+
+## 2. NOT COMPLETED
+
+## 3. FILES CREATED
+
+## 4. FILES MODIFIED
+
+## 5. FILES DELETED
+
+## 6. ARCHITECTURAL CHANGES
+
+## 7. CONTRACTS / INTERFACES CHANGED
+
+## 8. VERIFIED
+
+## 9. NOT VERIFIED
+
+## 10. TESTS RUN
+
+## 11. TEST RESULTS
+
+## 12. KNOWN FAILURES
+
+## 13. ASSUMPTIONS
+
+## 14. DEPENDENCIES ON CLAUDE 1 / CLAUDE 2
+
+## 15. QUESTIONS / ITEMS CLAUDE 1 OR CLAUDE 2 MUST CHECK
+
+## 16. POSSIBLE INTEGRATION CONFLICTS
+
+## 17. SECURITY / RELIABILITY / PERFORMANCE CONCERNS
+
+## 18. REMAINING WORK
+
+## 19. GIT STATUS / COMMIT
+
+For important claims, explicitly distinguish:
+
+* VERIFIED
+* SUPPORTED
+* INFERRED
+* PROPOSED
+* UNKNOWN
+* CONTRADICTED
+
+Do not fabricate test results, device results, Git state, commits, or live-service verification.
+
+---
+
+# 66. FINAL PRINCIPLE
+
+The **Phase 6 Experience Spec defines the destination**.
+
+The **current repository defines what actually exists**.
+
+Your job is to independently bridge those two within your ownership:
+
+> **Upload UX + reliability + integration + original-fidelity investigation**
+
+while preserving the larger three-agent architecture:
+
+```text
+             PHASE 6 SPEC
+                  ?
+        ?????????????????????
+        ?         ?         ?
+    Claude 1   Claude 2   Claude 3
+    Backend    Timeline   Upload
+    Security   Gallery    Reliability
+    R2         Viewer     Integration
+        ?         ?         ?
+        ?????????????????????
+                  ?
+          Independent review
+                  ?
+             Integration
+                  ?
+          Final Phase 6 gate
+```
+
+Do not wait for the other agents.
+
+Do not assume they are correct.
+
+Do not duplicate their ownership.
+
+Do not blindly follow historical documents.
+
+Do not optimize for apparent completeness.
+
+**Use engineering judgment.**
+
+**Implement independently.**
+
+**Verify independently.**
+
+**Expose uncertainty honestly.**
+
+**Leave the project in a state that can be independently audited and integrated.**
+
+// 
+
+Status: I'm building the upload queue as pure, testable modules (types and messages are written). Next are EXIF and metadata handling, then the queue engine, then tests.
+// this was promt after hitting limit
+// Continue exactly where you stopped before hitting the context limit.
+// Do not restart, redo completed work, or repeat the original prompt.
+// Recover your current state from our conversation and the repository, then continue the unfinished Claude 3 Phase 6 Upload UX / Reliability / Integration / iPhone work.
+// Keep the original Phase 6 Spec, ownership boundaries, and engineering freedom unchanged.
+// If you already completed something, leave it unchanged unless you now find evidence it is incorrect.
+// Continue implementation/testing now. When finished, briefly report:
+
+// completed
+// remaining
+// tests actually run
+// VERIFIED / NOT VERIFIED / UNKNOWN
+// files changed
+// blockers/dependencies
+
+// Continue from the exact point you stopped.
+
+The upload queue, EXIF reader, "Add memories" UI and trip-page hook-in are written as code in a patch bundle. The pure logic is tested in the sandbox, but nothing has run in the real repo, a browser, R2 or Supabase. No repo checkout, git, network or Next/React toolchain was available here, so there is no commit and no build or lint result.
+
+Completed
+Queue engine (upload/queue.ts): states queued, requesting, uploading, confirming, done, failed, rejected, cancelled.
+Max 3 items at once and max 1 video at once (my chosen values, not validated on devices).
+A signed URL is requested only after an item gets a slot, and the PUT starts immediately.
+PUT failure retries with a new request and new mediaId. Confirm failure or timeout keeps the same mediaId, checks the server status first, and never re-uploads.
+Local rejections use the spec copy. Server messages are shown as-is, never parsed.
+Queued items can be cancelled; running PUTs can be aborted. Requesting and confirming cannot be cancelled.
+Metadata:
+Dependency-free EXIF reader for JPEG and HEIC/HEIF, reading small byte ranges only.
+captured_at comes from EXIF DateTimeOriginal plus offset, else the browser time zone, else null. It is also null before 1990 or in the future; lastModified is never used.
+Dimensions and duration are sanitised before sending.
+Browser side:
+XHR PUT of the original File with the same Content-Type and a 60 s stall watchdog.
+Image and video dimensions are measured by browser decode, one image decode at a time.
+Session end is detected with the browser getUser().
+Refreshes are coalesced into one router.refresh() per 1.5 s window plus one on drain.
+The tray has an expandable list, retry, cancel and dismiss, 44px targets, a polite status line, an alert for failures, and a leave-page warning.
+Integration: AddMemories in the trip header for every member, and a new read-only getUploadStatusAction for confirm reconciliation. No SQL, RLS or grant changes.
+Shared-file edits: only export added to the two size limits in validation.ts, and the header edit in the trip page (diffs in validation.diff and page.diff).
+Remaining
+All real-environment checks are untested: build, lint, tsc --noEmit, real R2 PUT and CORS, two-account test, Android and iPhone work, and the HEIC and Optimize Storage fidelity investigation.
+Not built: drag-and-drop, ghost tiles, cleanup of pending rows after failure, and a leave-page guard for in-app link clicks (beforeunload does not see those).
+No Phase 5 UI exists at HEAD (no route renders the member or invitation components). I only reported this and did not build it.
+Tests actually run
+34 node:test tests against tsc-compiled output, all passing, with the EXIF/metadata file also run under UTC and America/Los_Angeles.
+They use a fake backend and R2. They cover:
+happy path, rejections and concurrency;
+PUT-failure retry gets a new mediaId;
+the confirm-timeout duplicate case: one request, one PUT, one object, one item;
+persistent confirm failure retried with the same mediaId;
+session end, cancel, and drain once;
+EXIF parsing, including bounded reads and corrupt-data fuzzing;
+capture-time and metadata bounds, plus the refresh coalescer.
+A tsc type-check of the pure modules and the UI/hook/action files, with the UI files checked against stubs I wrote for React and Next. That check only catches typos, not real type errors.
+Evidence
+
+VERIFIED (against fakes and synthetic files only):
+
+The retry and duplicate-prevention logic.
+The slot, concurrency and cancel logic.
+EXIF parsing of fixtures I built myself, not real camera files.
+
+NOT VERIFIED:
+
+Build, lint and the full tsc run.
+Real R2 PUT, CORS, or a request, PUT and confirm run against Supabase.
+React rendering, the router.refresh scroll behaviour, getUser() session detection, XHR progress, and decode-based dimensions.
+Cross-user behaviour.
+
+UNKNOWN: iPhone original fidelity, whether HEIC accept handling delivers originals, Optimize Storage behaviour, Android behaviour, and memory use at 200 MiB.
+
+Blockers and dependencies
+Claude 1, please check r2.ts: newer AWS SDK versions may put a checksum parameter into presigned PUT URLs that R2 rejects. This is inferred from known SDK behaviour, so test one real browser PUT. The likely fix is requestChecksumCalculation: "WHEN_REQUIRED".
+R2 bucket CORS must allow PUT with the Content-Type header from the local and deployed origins.
+Claude 2: the timeline must come from Server Component data so the refresh reaches it.
+A confirm failure from a lost membership shows only a generic server message.
+Files with an empty file.type (for example .heic on desktop Chrome on Windows) are rejected as unsupported. I do not guess the type from the extension.
+Please run tsc --noEmit, npm run lint and npm run build in the repo, then commit.
+
+Files are in /mnt/user-data/outputs/claude3-phase6/ (start with HANDOFF.md):
+
+src/modules/media/upload/ (queue, EXIF, metadata, browser adapters, hook, status action)
+src/modules/media/components/AddMemories.tsx
+src/modules/media/components/UploadTray.tsx
+src/modules/media/validation.ts (edited)
+src/app/(app)/trips/[tripId]/page.tsx (edited)
+tests/upload/queue.test.mjs and meta.test.mjs, the type-check stubs/config, and validation.diff / page.diff
+
+
+
+
+
+
+
+
